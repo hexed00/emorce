@@ -83,4 +83,30 @@ local function fetchHub(key)
 	local data = post("run", {
 		key = key, hub = HUB, game = tostring(game.GameId), place = tostring(game.PlaceId),
 		user = tostring(LP.UserId), name = LP.Name, executor = executorName(), device = deviceInfo(),
-	end)
+	})
+	if type(data.name) == "string" then HUB_NAME = data.name end
+	if type(data.length) == "string" then KEY_LENGTH = data.length end
+	LAST_LEFT = data.ok and tonumber(data.left) or nil
+	if data.ok and type(data.source) == "string" then return data.source end
+	return nil, data.error or "Something went wrong", data.unsupported, data.needKey
+end
+
+local openWindow
+local session = {}
+env["__KeySession_" .. HUB] = session
+
+local function watchGuis(bag)
+	local roots = {}
+	pcall(function() table.insert(roots, game:GetService("CoreGui")) end)
+	if gethui then pcall(function() local h = gethui() if h and not table.find(roots, h) then table.insert(roots, h) end end) end
+	local pg = LP:FindFirstChildOfClass("PlayerGui")
+	if pg then table.insert(roots, pg) end
+	for _, root in ipairs(roots) do
+		local ok, conn = pcall(function()
+			return root.ChildAdded:Connect(function(child)
+				if child.Name ~= "EmorceKey" then table.insert(bag.guis, child) end
+			end)
+		end)
+		if ok and conn then table.insert(bag.conns, conn) end
+	end
+end
